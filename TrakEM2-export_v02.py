@@ -8,6 +8,16 @@ from java.awt import Color
 import sys
 from ij.gui import GenericDialog
 
+project = Project.getProjects()[0]
+layerset = project.getRootLayerSet()
+front = Display.getFront(project)
+layerset.setMinimumDimensions()
+roi = front.getRoi()
+if roi is None:
+	 roi=layerset.get2DBounds()
+else:
+	()
+
 gui = GenericDialog("Export from TrakEM2")
 # Create an instance of GenericDialog
 gui = GenericDialog("Export from TrakEM2")
@@ -31,6 +41,9 @@ gui.addChoice("Save to file or show", ["Save", "Show"], "Save")
 
 
 gui.addNumericField("Scaling between 1 (full resolution) and 0", 1, )
+gui.addCheckbox("Export full stack?", True)
+gui.addSlider("First section to export", 1, layerset.size(),1 )
+gui.addSlider("Last section to export", 1, layerset.size(),layerset.size() )
 #gui.addNumericField("Number of threads NOT WORKING", 12, 0) # 0 for no decimal part
 
 # Add a Help button in addition to the default OK/Cancel
@@ -49,10 +62,30 @@ if gui.wasOKed():
     bgColor = gui.getNextChoice() # one could alternatively call the getNextChoiceIndex too
     mode = gui.getNextChoice()
     SaveOrShow = gui.getNextChoice()
+    FullStack   = gui.getNextBoolean()
     scale = gui.getNextNumber()
+    MinSec = gui.getNextNumber()
+    MaxSec = gui.getNextNumber()
+    
 #    numThreads    = gui.getNextNumber() # This always return a double (ie might need to cast to int)
 else:
 	print("Cancelled...")
+
+	
+if FullStack is True:
+	MinSection = 0
+	MaxSection = int(layerset.size()-1)
+elif FullStack is False:
+	MinSection = int(MinSec -1)
+	MaxSection = int(MaxSec -1)
+else:
+	print("Something went wrong")
+print(MaxSec)	
+print(MinSec)
+print(MaxSection)	
+print(MinSection)
+
+
 #FULL DirName
 targetDir = tarDir + "/" + tarName
 	
@@ -103,21 +136,21 @@ print (colorMode)
 #roi = layerset.get2DBounds()
 #scale = 1.0
 
-project = Project.getProjects()[0]
-layerset = project.getRootLayerSet()
-front = Display.getFront(project)
-layerset.setMinimumDimensions()
-roi = front.getRoi()
-if roi is None:
-	 roi=layerset.get2DBounds()
-else:
-	()
+#project = Project.getProjects()[0]
+#layerset = project.getRootLayerSet()
+#front = Display.getFront(project)
+#layerset.setMinimumDimensions()
+#roi = front.getRoi()
+#if roi is None:
+#	 roi=layerset.get2DBounds()
+#else:
+#	()
 ###Save to file
 if SaveOrShow == "Save":
 
     if fileFormat == "tif":
     
-        for i, layer in enumerate(layerset.getLayers()):
+        for i, layer in enumerate(layerset.getLayers(MinSection,MaxSection)):
             print layer
         # Export the image here, e.g.:
             tiles = layer.getDisplayables(Patch)
@@ -132,11 +165,11 @@ if SaveOrShow == "Save":
     
             imp = ImagePlus("Flat montage", ip)
             #print(type(imp))
-            FileSaver(imp).saveAsTiff(targetDir + str(i + 1).zfill(4) + ".tif")
+            FileSaver(imp).saveAsTiff(targetDir + str(int(MinSection)+int(str(i + 1))).zfill(4) + ".tif")
     
     elif fileFormat == "png":
     
-        for i, layer in enumerate(layerset.getLayers()):
+        for i, layer in enumerate(layerset.getLayers(MinSection,MaxSection)):
             print layer
         # Export the image here, e.g.:
             tiles = layer.getDisplayables(Patch)
@@ -151,11 +184,11 @@ if SaveOrShow == "Save":
     
             imp = ImagePlus("Flat montage", ip)
             #print(type(imp))
-            FileSaver(imp).saveAsTiff(targetDir + str(i + 1).zfill(4) + ".png")
+            FileSaver(imp).saveAsTiff(targetDir + str(int(MinSection)+int(str(i + 1))).zfill(4) + ".png")
     
     elif fileFormat == "jpg":
         
-        for i, layer in enumerate(layerset.getLayers()):
+        for i, layer in enumerate(layerset.getLayers(MinSection,MaxSection)):
             print layer
         # Export the image here, e.g.:
             tiles = layer.getDisplayables(Patch)
@@ -170,7 +203,7 @@ if SaveOrShow == "Save":
     
             imp = ImagePlus("Flat montage", ip)
             #print(type(imp))
-            FileSaver(imp).saveAsTiff(targetDir + str(i + 1).zfill(4) + ".jpg")
+            FileSaver(imp).saveAsTiff(targetDir + str(int(MinSection)+int(str(i + 1))).zfill(4) + ".jpg")
     else:
         print ("something wrong here...")
     
@@ -181,7 +214,7 @@ elif SaveOrShow == "Show":
     ist = ImageStack()
 
 
-    for i, layer in enumerate(layerset.getLayers()):
+    for i, layer in enumerate(layerset.getLayers(MinSection,MaxSection)):
         print layer
     # Export the image here, e.g.:
         tiles = layer.getDisplayables(Patch)
@@ -196,7 +229,7 @@ elif SaveOrShow == "Show":
 
         imp = ImagePlus("Flat montage", ip)
         #print(type(imp))
-        ist.addSlice(tarName + str(i + 1).zfill(4),imp.getProcessor())
+        ist.addSlice(tarName + str(int(MinSection)+int(str(i + 1))).zfill(4),imp.getProcessor())
     stack = ImagePlus("Stack",ist)
     stack.show()
 
